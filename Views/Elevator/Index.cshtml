@@ -1,0 +1,167 @@
+﻿@model ElevatorControlSystem.Models.Elevator
+<style>
+    #elevatorSystem {
+        display: flex;
+        align-items: start;
+    }
+
+    #floors {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .floor {
+        width: 100%;
+        text-align: center;
+    }
+
+    #elevatorShaft {
+        position: relative;
+        height: 510px; /* Adjust based on your preference */
+        width: 100px; /* This width can be adjusted based on your preference */
+        border: 2px solid #000;
+        margin-left: 20px; /* Spacing between floors and elevator shaft */
+    }
+
+    #elevator {
+        position: absolute;
+        width: 100%; /* Make the elevator fill the shaft */
+        height: 20%; /* Adjust based on your preference, related to the shaft height */
+        background-color: #ccc;
+        text-align: center;
+        line-height: 50px; /* Adjust to match elevator height if changed */
+    }
+
+
+</style>
+<h2>Elevator Control Panel</h2>
+<div id="elevatorSystem" class="d-flex justify-content-center">
+    <div id="floors" class=" mx-5">
+        @for (int i = 5; i >= 1; i--)
+        {
+            <div class="floor pt-3">
+                @if (i == 1)
+                {
+                    <button type="button" class="call-elevator btn btn-primary mb-5" data-floor="@i" data-direction="Up">Call Down</button>
+                }
+                else if (i == 5)
+                {
+                    <button type="button" class="call-elevator btn btn-dark mb-5" data-floor="@i" data-direction="Down">Call Up</button>
+                }
+                else
+                {
+                    <button type="button" class="call-elevator btn btn-dark mb-5" data-floor="@i" data-direction="Up">Up</button>
+                    <button type="button" class="call-elevator btn btn-dark mb-5" data-floor="@i" data-direction="Down">Down</button>
+                }
+            </div>
+        }
+    </div>
+
+    <div id="elevatorShaft" class="mr-5 pt-2">
+        <div id="elevator" style="bottom: 0%;">Elevator</div>
+    </div>
+</div>
+
+<!-- Get In Modal -->
+<div class="modal fade" id="getInModal" tabindex="-1" aria-labelledby="getInModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                Get in?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                <button type="button" class="btn btn-primary" id="getInYes">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Choose Floor Modal -->
+<div class="modal fade" id="chooseFloorModal" tabindex="-1" aria-labelledby="chooseFloorModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <select class="form-select" id="floorSelection">
+                    @for (int i = 1; i <= 5; i++)
+                    {
+                        <option value="@i">Floor @i</option>
+                    }
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="goToFloor">Go</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+     <script>
+        $(document).ready(function () {
+            $('.call-elevator').click(function () {
+                 $('.call-elevator').removeClass('btn-success').addClass('btn-dark');
+                $(this).removeClass('btn-dark').addClass('btn-success');
+                var floor = $(this).data('floor');
+                var position = ((floor - 1) / 5) * 100; 
+                $('#elevator').animate({ bottom: position + '%' }, 3000); 
+            });
+        });
+    </script> 
+
+    <script>
+        $(document).ready(function () {
+            $('.call-elevator').click(function () {
+                var floor = $(this).data('floor');
+               // var direction = $(this).data('direction'); // Assuming direction might be used later
+                
+               callElevator(floor);
+            });
+
+            $('#getInYes').click(function () {
+                $('#getInModal').modal('hide');
+                $('#chooseFloorModal').modal('show');
+            });
+
+            $('#goToFloor').click(function () {
+                var selectedFloor = $('#floorSelection').val();
+                moveElevator(selectedFloor);
+                $('#chooseFloorModal').modal('hide');
+            });
+        });
+
+        function callElevator(floor) {
+            $.ajax({
+                
+                url: '/Elevator/CallElevator',
+                type: 'POST',
+                data: { floor: floor },
+                success: function (response) {
+                    if (response.success) {
+                        setTimeout(function () {
+                            $('#getInModal').modal('show');
+                        }, 100); 
+                    }
+                }
+            });
+        }
+
+        function moveElevator(targetFloor) {
+            $.ajax({
+                url: '/Elevator/MoveElevator',
+                type: 'POST',
+                data: { targetFloor: targetFloor },
+                success: function (response) {
+                    if (response.success) {
+                        var position = ((response.currentFloor - 1) / 5) * 100;
+                        $('#elevator').animate({ bottom: position + '%' }, 3000);
+                        $('.call-elevator').removeClass('btn-success').addClass('btn-dark');
+                    }
+                }
+            });
+        }
+    </script>
+}
